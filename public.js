@@ -11,7 +11,7 @@ var what;
 var leadlength;
 var methodinfo = {};
 var compinfo;
-var places = "1234567890ET";
+const places = "1234567890ET";
 var rowcategories = ["top","queens","tittums","queensish","tittumsish","allthirds", "exploded tittums", "exploded steps", "exploded thirds", "roundspairs", "thirds and steps", "tittums down a stage", "queens down a stage", "run", "step sequence", "nice zigzag"];
 var maxes = [
   {
@@ -136,6 +136,7 @@ function getcomplib(compid, w) {
   }
 }
 
+//drawing a rhombicosidodecahedron so I can map major coursing orders on it
 function compexperiment() {
   if (compinfo.methodDefinitions.length > 1) {
     console.log("spliced");
@@ -184,40 +185,57 @@ function compexperiment() {
   $('#svgcontainer').svg({onLoad: drawInitial});
 }
 
+//in the method search?
+function courseclick(e) {
+  if ($(e.currentTarget).hasClass("selected")) {
+    $(e.currentTarget).removeClass("selected");
+    $("#courseorders td.close").removeClass("close");
+    $("#courseorders td.false").removeClass("false");
+    $("div#courseinfo").contents().detach();
+  } else {
+    $("div#courseinfo").contents().detach();
+    ["selected","close","false","hasrow"].forEach(w => {
+      $("#courseorders td."+w).removeClass(w);
+    });
+    $(e.currentTarget).addClass("selected");
+    //console.log($(e.currentTarget).find("li:first-child").text());
+    let costr = $(e.currentTarget).find("li:first-child").text();
+    let close = closecourses(costr);
+    //console.log(close);
+    close.forEach(s => {
+      if ($("td#c"+s)) {
+        $("td#c"+s).addClass("close");
+      }
+    });
+    let fcos = getfalse(costr);
+    fcos.forEach(s => {
+      if ($("td#c"+s)) {
+        $("td#c"+s).addClass("false");
+      }
+    });
+    let details = methodinfo.cos[costr];
+    let html = `<ul>
+    `;
+    for (let i = 0; i < details.wholerows.length; i++) {
+      html += `<li>${details.wholerows[i]}</li>
+      `;
+    }
+    html += `</ul>`;
+    $("#courseinfo").append(html);
+  }
+}
+
+
+// ***** BELLRINGING FUNCTIONS *****
+
 //convert bell characters to numbers
 function bellnum(n) {
-  switch (n) {
-    case "0":
-      return 10;
-      break;
-    case "E":
-      return 11;
-      break;
-    case "T":
-      return 12;
-      break;
-    default:
-      return Number(n);
-  }
+  return places.indexOf(n)+1;
 }
 
 //convert array of bell numbers to string of characters
 function rowstring(arr) {
-  let r = arr.map(n => {
-    switch (n) {
-      case 10:
-        return "0";
-        break;
-      case 11:
-        return "E";
-        break;
-      case 12:
-        return "T";
-        break;
-      default:
-        return n;
-    }
-  });
+  let r = arr.map(n => places[n-1]);
   return r.join("");
 }
 
@@ -245,6 +263,7 @@ function rotateco(co,n) {
 }
 
 //rotate a coursing order to put a given number first
+//co needs to be an array of numbers
 function rotateco2(co,n) {
   let i = co.indexOf(n);
   let rot = co.slice(i);
@@ -278,35 +297,9 @@ function findcofromrow(row) {
   return cos;
 }
 
-//inactive Dec 2024
-function getrowsets() {
-  
-  $.get("rows6.json", function(body) {
-    goodrows.push({stage: 6, rows: body});
-    $.get("rows8.json", function(arr) {
-      goodrows.push({stage: 8, rows: arr});
-      console.log(arr.length);
-    });
-  });
-}
 
-//inactive Dec 2024
-function getloop(n) {
-  $.get("rows"+n+".json", function(body) {
-    console.log(body.length);
-    goodrows.push({stage: n, rows: body});
-    $.get("index"+n+".json", function(obj) {
-      index.push({stage: n, index: obj});
-      n += 2;
-      if (n <= 12) {
-        getloop(n);
-      } else {
-        $("button").removeClass("hidden");
-      }
-    });
-  });
-}
 
+//extremely unfinished
 function buildtop(n) {
   let good = {};
   let bigrounds = places.slice(0,n);
@@ -516,7 +509,7 @@ function buildextent(r) {
   let arr = [];
   if (n === 2) {
     return extenttwo(r);
-  } else {
+  } else if (n < 13) {
     for (let i = 0; i < n; i++) {
       let others = [];
       for (let j = 0; j < n; j++) {
@@ -538,44 +531,7 @@ function extenttwo(r) {
   return arr;
 }
 
-function courseclick(e) {
-  if ($(e.currentTarget).hasClass("selected")) {
-    $(e.currentTarget).removeClass("selected");
-    $("#courseorders td.close").removeClass("close");
-    $("#courseorders td.false").removeClass("false");
-    $("div#courseinfo").contents().detach();
-  } else {
-    $("div#courseinfo").contents().detach();
-    ["selected","close","false","hasrow"].forEach(w => {
-      $("#courseorders td."+w).removeClass(w);
-    });
-    $(e.currentTarget).addClass("selected");
-    //console.log($(e.currentTarget).find("li:first-child").text());
-    let costr = $(e.currentTarget).find("li:first-child").text();
-    let close = closecourses(costr);
-    //console.log(close);
-    close.forEach(s => {
-      if ($("td#c"+s)) {
-        $("td#c"+s).addClass("close");
-      }
-    });
-    let fcos = getfalse(costr);
-    fcos.forEach(s => {
-      if ($("td#c"+s)) {
-        $("td#c"+s).addClass("false");
-      }
-    });
-    let details = methodinfo.cos[costr];
-    let html = `<ul>
-    `;
-    for (let i = 0; i < details.wholerows.length; i++) {
-      html += `<li>${details.wholerows[i]}</li>
-      `;
-    }
-    html += `</ul>`;
-    $("#courseinfo").append(html);
-  }
-}
+
 
 //given a coursing order, find the courses that are false against it
 function getfalse(co) {
@@ -2460,5 +2416,36 @@ function filterzigzag(r) {
   }
   
   return match;
+}
+
+// ****** OLD STUFF ******
+
+//inactive Dec 2024
+function getrowsets() {
+  
+  $.get("rows6.json", function(body) {
+    goodrows.push({stage: 6, rows: body});
+    $.get("rows8.json", function(arr) {
+      goodrows.push({stage: 8, rows: arr});
+      console.log(arr.length);
+    });
+  });
+}
+
+//inactive Dec 2024
+function getloop(n) {
+  $.get("rows"+n+".json", function(body) {
+    console.log(body.length);
+    goodrows.push({stage: n, rows: body});
+    $.get("index"+n+".json", function(obj) {
+      index.push({stage: n, index: obj});
+      n += 2;
+      if (n <= 12) {
+        getloop(n);
+      } else {
+        $("button").removeClass("hidden");
+      }
+    });
+  });
 }
 
